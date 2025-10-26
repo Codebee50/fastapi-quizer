@@ -12,6 +12,7 @@ from io import BytesIO
 import cloudinary
 import cloudinary.uploader
 import os
+import requests
 
 from app import config
 
@@ -32,6 +33,7 @@ SYSTEM_PROMPT = """
     - Have **one correct answer** clearly supported by the text.
     - Be **self-contained** (understandable without context from other pages).
     5. Skip pages that contain no meaningful or relevant content.
+    6. If the page is a valid page, then generate a minimum of 5 questions per page
 
     ### Output Format
     Return the result as a JSON array of question objects:
@@ -66,7 +68,31 @@ SYSTEM_PROMPT = """
 """
 
 
-
+def send_brevo_email(email, subject, html_content):
+    response = requests.post(
+        "https://api.brevo.com/v3/smtp/email",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {config.BREVO_API_KEY}", # this is the api key for the brevo api
+            "accept": "application/json",
+            "api-key": config.BREVO_API_KEY
+        },
+        json={
+            "to": [{"email": email}],
+            "subject": subject,
+            "htmlContent": html_content,
+            "sender": {
+                "name": "KyrInfo",
+                # "email": "support@erdvsion.dev"
+                "email": config.BREVO_FROM_EMAIL
+            }
+        }
+    )
+    try:
+        return response.json()
+    except Exception as e:
+        print(e)
+        return None
         
 class QuizQuestion(BaseModel):
     question: str
@@ -210,7 +236,7 @@ async def agent_processor(agent:Agent, task_queue:asyncio.Queue):
     return results
 
 
-async def _generate_quiz_async(text_list: list[str]):
+async def _generate_quiz_async(text_list: list[str], email: str):
     print("Initiating quiz generation...")
 
     task_queue = asyncio.Queue()
@@ -239,11 +265,42 @@ async def _generate_quiz_async(text_list: list[str]):
 
     pdf_converter = PdfConverter(results)
     pdf_path = pdf_converter.convert_to_pdf()
+
     s3_url = pdf_converter.upload_to_s3(pdf_path)
     
-    #TODO: send an email to the user wit the pdf url
-    return results
+    
+    html_content = f"""
+        <div style="font-family: Arial, sans-serif; max-width:500px; margin:32px auto; border-radius:12px; border:1px solid #e0e0e0;">
+            <div style="background: #38a169; color: #fff; padding: 32px 20px 16px 20px; border-radius:12px 12px 0 0;">
+                <h1 style="margin: 0; font-size: 2rem; font-weight: 700; letter-spacing: -1px;">🎉 Your Quiz is Ready!</h1>
+            </div>
+            <div style="padding: 24px 20px 32px 20px; background: #f9fafb; border-radius:0 0 12px 12px;">
+                <p style="font-size: 1.1rem; margin-bottom: 24px;">
+                    Thank you for using <strong>KyrInfo Quizer</strong>.<br>
+                    Your personalized quiz PDF has been generated and is ready to download!
+                </p>
+                <a href="{s3_url}" 
+                    style="
+                        display: inline-block; 
+                        background: #38a169;
+                        color: #fff; 
+                        font-weight: bold; 
+                        padding: 14px 32px; 
+                        border-radius: 6px; 
+                        font-size: 1.1rem; 
+                        text-decoration:none;">
+                    📥 Download Your Quiz
+                </a>
+                <p style="font-size:0.96rem;color:#686c72;margin-top:24px;">
+                    Need help or have feedback? Just reply to this email!
+                </p>
+            </div>
+        </div>
+    """
+    send_brevo_email(email, "Your Quiz is Ready", html_content)
+    return "Quiz generated successfully"
 
 @shared_task
-def generate_quiz(text_list: list[str]):
-    asyncio.run(_generate_quiz_async(text_list))
+def generate_quiz(text_list: list[str], email: str)-> str:
+    asyncio.run(_generate_quiz_async(text_list, email))
+    return "Quiz generated successfully"
