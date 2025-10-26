@@ -82,7 +82,7 @@ def send_brevo_email(email, subject, html_content):
             "subject": subject,
             "htmlContent": html_content,
             "sender": {
-                "name": "KyrInfo",
+                "name": "BeeQuizer",
                 # "email": "support@erdvsion.dev"
                 "email": config.BREVO_FROM_EMAIL
             }
@@ -272,7 +272,7 @@ async def _generate_quiz_async(text_list: list[str], email: str):
     html_content = f"""
         <div style="font-family: Arial, sans-serif; max-width:500px; margin:32px auto; border-radius:12px; border:1px solid #e0e0e0;">
             <div style="background: #38a169; color: #fff; padding: 32px 20px 16px 20px; border-radius:12px 12px 0 0;">
-                <h1 style="margin: 0; font-size: 2rem; font-weight: 700; letter-spacing: -1px;">Your Quiz is Ready!</h1>
+                <h2 style="margin: 0; font-size: 2rem; font-weight: 700; letter-spacing: -1px;">Your Quiz is Ready!</h2>
             </div>
             <div style="padding: 24px 20px 32px 20px; background: #f9fafb; border-radius:0 0 12px 12px;">
                 <p style="font-size: 1.1rem; margin-bottom: 24px;">
@@ -289,7 +289,7 @@ async def _generate_quiz_async(text_list: list[str], email: str):
                         border-radius: 6px; 
                         font-size: 1.1rem; 
                         text-decoration:none;">
-                    📥 Download Your Quiz
+                    Download Your Quiz
                 </a>
                 <p style="font-size:0.96rem;color:#686c72;margin-top:24px;">
                     Need to generate another quiz? JHead over to <a href="https://beequizer.site/">BeeQuizer</a> to get started! <br>
