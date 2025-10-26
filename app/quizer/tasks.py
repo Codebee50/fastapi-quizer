@@ -272,11 +272,11 @@ async def _generate_quiz_async(text_list: list[str], email: str):
     html_content = f"""
         <div style="font-family: Arial, sans-serif; max-width:500px; margin:32px auto; border-radius:12px; border:1px solid #e0e0e0;">
             <div style="background: #38a169; color: #fff; padding: 32px 20px 16px 20px; border-radius:12px 12px 0 0;">
-                <h1 style="margin: 0; font-size: 2rem; font-weight: 700; letter-spacing: -1px;">🎉 Your Quiz is Ready!</h1>
+                <h1 style="margin: 0; font-size: 2rem; font-weight: 700; letter-spacing: -1px;">Your Quiz is Ready!</h1>
             </div>
             <div style="padding: 24px 20px 32px 20px; background: #f9fafb; border-radius:0 0 12px 12px;">
                 <p style="font-size: 1.1rem; margin-bottom: 24px;">
-                    Thank you for using <strong>KyrInfo Quizer</strong>.<br>
+                    Thank you for using <strong>BeeQuizer</strong>.<br>
                     Your personalized quiz PDF has been generated and is ready to download!
                 </p>
                 <a href="{s3_url}" 
@@ -292,7 +292,8 @@ async def _generate_quiz_async(text_list: list[str], email: str):
                     📥 Download Your Quiz
                 </a>
                 <p style="font-size:0.96rem;color:#686c72;margin-top:24px;">
-                    Need help or have feedback? Just reply to this email!
+                    Need to generate another quiz? JHead over to <a href="https://beequizer.site/">BeeQuizer</a> to get started! <br>
+                    Contact the software developer at <a href="mailto:onuhudoudo@gmail.com">onuhudoudo@gmail.com</a> for any questions or feedback.
                 </p>
             </div>
         </div>
