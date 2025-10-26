@@ -21,7 +21,7 @@ def initiate_quiz_generation(email: str, file: UploadFile = File(...)):
     if len(extracted_text_dict) > 300:
         raise HTTPException(status_code=400, detail="PDF contains more than 300 pages, please use a smaller file")
     
-    # task = generate_quiz.delay(list(extracted_text_dict.values()), email)
-    return {"message": "PDF parsed successfully", "task_id": "task.id"}
+    task = generate_quiz.delay(list(extracted_text_dict.values()), email)
+    return {"message": "PDF parsed successfully", "task_id": task.id}
 
     
