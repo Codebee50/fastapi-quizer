@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+
+  web:
+    build: .
+    ports:
+      - 8000:8000
+    command: ['honcho', 'start','-f', 'Procfile.dev']
+    volumes:
+      - .:/usr/src/app
+    env_file:
+      - ./app/.env
+    container_name: beeseeder
+    depends_on:
+      - redis
+
+  worker:
+    build: .
+    command: celery -A app.worker.celery worker --loglevel=info
+    volumes:
+      - .:/usr/src/app
+    env_file:
+      - ./app/.env
+    container_name: celery-worker
+    depends_on:
+      - web
+      - redis
+
+  redis:
+    image: redis:7
+    container_name: redis
+    

@@ -1,0 +1,249 @@
+import json
+from agents.items import TResponseOutputItem
+from celery import shared_task
+import asyncio
+from agents import Agent, TResponseInputItem, function_tool, Runner
+from pydantic import BaseModel
+from itertools import chain
+from itertools import chain
+from fpdf import FPDF
+import uuid
+from io import BytesIO
+import cloudinary
+import cloudinary.uploader
+import os
+
+from app import config
+
+
+SYSTEM_PROMPT = """
+    You are a precise and reliable quiz generation assistant for educational and professional content.
+
+    Your task is to generate multiple-choice questions (MCQs) based *strictly* on the provided text content.
+    Each item in the input list represents one page of a document (e.g., a government rulebook, policy, or training manual).
+
+    ### Rules
+    1. Do **not hallucinate** or infer information not explicitly stated in the text.
+    2. Ignore the page by returning an empty list if you think it is not relevant to the quiz generation e.g preliminary pages, table of contents, index, etc.
+    2. Focus on important facts, definitions, processes, or key ideas.
+    3. Avoid repeating the same question across pages.
+    4. Each question should:
+    - Have exactly **4 options (A-D)**.
+    - Have **one correct answer** clearly supported by the text.
+    - Be **self-contained** (understandable without context from other pages).
+    5. Skip pages that contain no meaningful or relevant content.
+
+    ### Output Format
+    Return the result as a JSON array of question objects:
+
+    [
+        {
+            "question": "string",
+            "options": ["A", "B", "C", "D"],
+            "answer": "A",
+            "explanation": "string (briefly explaining why the answer is correct, if possible)"
+        }
+    ]
+
+    ### Example
+    Input Page:
+    "According to the Public Service Rules (PSR), a junior officer refers to a pensionable officer on GL.06 and below."
+
+    Output:
+    [
+        {
+            "question": "According to the Public Service Rules, who is classified as a junior officer?",
+            "options": [
+                "An officer on GL.06 and below",
+                "An officer on GL.07 and above",
+                "A contract staff member",
+                "A political appointee"
+            ],
+            "answer": "An officer on GL.06 and below",
+            "explanation": "The PSR defines a junior officer as a pensionable officer on GL.06 and below."
+        }
+    ]
+"""
+
+
+
+        
+class QuizQuestion(BaseModel):
+    question: str
+    options: list[str]
+    answer: str
+    explanation: str
+
+class QuizBatch(BaseModel):
+    questions: list[QuizQuestion]
+    
+
+class PdfConverter():
+    def __init__(self, questions: list[QuizQuestion]):
+        self.questions = questions
+        
+        option_index_mapping = {
+            0: "A",
+            1: "B",
+            2: "C",
+            3: "D",
+        }
+        self.option_index_mapping = option_index_mapping
+    
+    def safe_multi_cell(self, pdf, text:str):
+        text = str(text) if text is not None else ""
+        
+        text = text.encode('latin-1', 'replace').decode('latin-1')
+        return pdf.multi_cell(0, 5, text, align='L')
+    
+    def upload_to_cloudinary(self, path:str)-> str | None:
+        print("Uploading pdf quizes to cloudinary...")
+        try:        
+            response = cloudinary.uploader.upload(
+                path, 
+                public_id=f"quiz_{uuid.uuid4()}",
+                resource_type="raw",
+                mime_type="application/pdf",
+                overwrite=True,
+                tags=["beequizer", "quiz"],
+                folder="beequizer/quizes",
+            )
+            
+            print("Removing local pdf file")
+            if os.path.exists(path):
+                os.remove(path)
+        except Exception as e:
+            print(f"Error uploading to cloudinary: {e}")
+            return None
+    
+    def upload_to_s3(self, path:str)-> str | None:
+        print("Uploading pdf quizes to s3...")
+        
+        key = f"results/quiz_{uuid.uuid4()}.pdf"
+        try:
+            config.s3_client.put_object(
+                Bucket=config.AWS_STORAGE_BUCKET_NAME,
+                Key=key,
+                Body=open(path, "rb"),
+                ContentType="application/pdf",
+            )
+            
+            file_url  = f"https://{config.AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/{key}"
+            print(f"Uploaded pdf quizes to s3: {file_url}")
+            
+            if os.path.exists(path):
+                os.remove(path)
+            return file_url 
+        except Exception as e:
+            print(f"Error uploading to s3: {e}")
+            return None
+        
+ 
+        
+    def convert_to_pdf(self):
+        pdf = FPDF()
+        pdf.set_auto_page_break(auto=True, margin=15)
+        pdf.set_margins(10, 10, 10)
+        
+        pdf.add_page()
+        for index, question in enumerate(self.questions):
+            pdf.set_font("Arial", style="B", size=13)
+            self.safe_multi_cell(pdf, f"Question {index + 1}:")
+            
+            pdf.set_font("Arial", style="B", size=11)
+            self.safe_multi_cell(pdf, question.question)
+            pdf.set_font("Arial", size=11)
+            for index, option in enumerate(question.options):
+                text_option = self.option_index_mapping.get(index, "UNKNOWN")
+                self.safe_multi_cell(pdf, f"({text_option}) {option}")
+            self.safe_multi_cell(pdf, f"Answer: {question.answer}")
+            self.safe_multi_cell(pdf, f"Explanation: {question.explanation}")
+            pdf.ln(10)
+        
+        file_name = f"quiz_{uuid.uuid4()}.pdf"
+        pdf.output(file_name)
+        return file_name
+    
+class SummarizerInputItem(BaseModel):
+    text: str
+
+summarizer_agent = Agent(
+    name="Summarizer Agent",
+    instructions=SYSTEM_PROMPT,
+    model="gpt-4o-mini",
+    output_type=QuizBatch,
+)
+
+
+async def agent_processor(agent:Agent, task_queue:asyncio.Queue):
+    results = []
+    while True:
+        page_list = await task_queue.get()
+        if page_list is None:
+            print("Received sentinel, stopping agent processor")
+            break
+        
+        print("Running agent on pages")
+        
+        # INSERT_YOUR_CODE
+        # dummy_quiz_batch = QuizBatch(
+        #     questions=[
+        #         QuizQuestion(
+        #             question="What is the capital of France?",
+        #             options=["Paris", "London", "Berlin", "Madrid"],
+        #             answer="Paris",
+        #             explanation="Paris is the capital and most populous city of France."
+        #         ),
+        #         QuizQuestion(
+        #             question="Which planet is known as the Red Planet?",
+        #             options=["Earth", "Mars", "Jupiter", "Venus"],
+        #             answer="Mars",
+        #             explanation="Mars is often called the 'Red Planet' because of its reddish appearance."
+        #         )
+        #     ]
+        # )
+        # results.extend(dummy_quiz_batch.questions)
+        
+        
+        result = await Runner.run(agent, json.dumps(page_list, default=str))
+        results.extend(result.final_output.questions)
+    return results
+
+
+async def _generate_quiz_async(text_list: list[str]):
+    print("Initiating quiz generation...")
+
+    task_queue = asyncio.Queue()
+
+    MAX_PAGES_PER_AGENT = 10
+    MAX_AGENTS = 3
+
+    print("Adding tasks to queue...")
+    for i in range(0, len(text_list), MAX_PAGES_PER_AGENT):
+        await task_queue.put(text_list[i:i+MAX_PAGES_PER_AGENT])
+
+    for _ in range(MAX_AGENTS):
+        await task_queue.put(None)  # sentinel for each worker
+        
+    print(f"Text list length: {len(text_list)}")
+    print(f"Task queue size: {task_queue.qsize()}")
+    print(f"Inserted {MAX_AGENTS} sentinels, starting agent processors")
+
+    # Run multiple agent processors concurrently
+    results = await asyncio.gather(
+        *[agent_processor(summarizer_agent, task_queue) for _ in range(MAX_AGENTS)]
+    )
+    
+    results = list(chain(*results))#this will contain a list of quiz questions
+    
+
+    pdf_converter = PdfConverter(results)
+    pdf_path = pdf_converter.convert_to_pdf()
+    s3_url = pdf_converter.upload_to_s3(pdf_path)
+    
+    #TODO: send an email to the user wit the pdf url
+    return results
+
+@shared_task
+def generate_quiz(text_list: list[str]):
+    asyncio.run(_generate_quiz_async(text_list))
