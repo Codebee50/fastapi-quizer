@@ -3,14 +3,29 @@ import fitz
 import ocrmypdf
 import tempfile
 import os
+from typing import Optional
 
 class PDFParser:
-    def __init__(self, file: UploadFile):
+    def __init__(self, file_path: Optional[str]=None, file: Optional[UploadFile]=None):
         self.file = file
-    
-    def pymupdf_text_extract(self):
-        pdf_bytes = self.file.file.read()
+        self.file_path = file_path
         
+    def extract_pdf_text(self):
+        if not self.file:
+            raise ValueError("File is required")
+        extracted_text_dict = self._pymupdf_text_extract()
+        
+        empty_texts = [text for text in extracted_text_dict.values() if text.strip() == ""]
+        if len(empty_texts) > 0.9 * len(extracted_text_dict):
+            print("PDF contains more than 90% empty text, using OCR")
+            extracted_text_dict = self._ocr_and_extract()
+            return extracted_text_dict
+        else:
+            return extracted_text_dict
+
+        
+    def _pymupdf_text_extract(self)-> dict[int, str]:
+        pdf_bytes = self.file.file.read()
         with fitz.open(stream=pdf_bytes, filetype="pdf") as doc:
             full_text = {}
             
@@ -21,7 +36,18 @@ class PDFParser:
                 
             return full_text
         
-    def ocr_and_extract(self):
+        
+        # with fitz.open(self.file_path) as doc:
+        #     full_text = {}
+            
+        #     index = 0
+        #     for page in doc:
+        #         full_text[index] = page.get_text("text")
+        #         index += 1
+                
+        #     return full_text
+        
+    def _ocr_and_extract(self)-> dict[int, str]:
         # Create temp files
         input_pdf = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
         output_pdf = tempfile.NamedTemporaryFile(suffix="_ocr.pdf", delete=False)

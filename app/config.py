@@ -13,14 +13,15 @@ AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_KEY")
 AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
 
 
-s3_client = boto3.client(
-    "s3",
-    aws_access_key_id=AWS_ACCESS_KEY_ID,
-    aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-    region_name=AWS_REGION,
-)
+
+def get_s3_client()-> boto3.client:
+    return boto3.client("s3", aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY, region_name=AWS_REGION)
 
 AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME", "beequizer")
 
 BREVO_API_KEY = os.getenv("BREVO_API_KEY")
 BREVO_FROM_EMAIL = os.getenv("BREVO_FROM_EMAIL")
+
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+
+VERSION = "0.1.0"
