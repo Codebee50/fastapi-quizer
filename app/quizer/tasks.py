@@ -227,27 +227,27 @@ async def agent_processor(agent:Agent, task_queue:asyncio.Queue):
         logger.info("Running agent on pages")
         
         # INSERT_YOUR_CODE
-        dummy_quiz_batch = QuizBatch(
-            questions=[
-                QuizQuestion(
-                    question="What is the capital of France?",
-                    options=["Paris", "London", "Berlin", "Madrid"],
-                    answer="Paris",
-                    explanation="Paris is the capital and most populous city of France."
-                ),
-                QuizQuestion(
-                    question="Which planet is known as the Red Planet?",
-                    options=["Earth", "Mars", "Jupiter", "Venus"],
-                    answer="Mars",
-                    explanation="Mars is often called the 'Red Planet' because of its reddish appearance."
-                )
-            ]
-        )
-        results.extend(dummy_quiz_batch.questions)
+        # dummy_quiz_batch = QuizBatch(
+        #     questions=[
+        #         QuizQuestion(
+        #             question="What is the capital of France?",
+        #             options=["Paris", "London", "Berlin", "Madrid"],
+        #             answer="Paris",
+        #             explanation="Paris is the capital and most populous city of France."
+        #         ),
+        #         QuizQuestion(
+        #             question="Which planet is known as the Red Planet?",
+        #             options=["Earth", "Mars", "Jupiter", "Venus"],
+        #             answer="Mars",
+        #             explanation="Mars is often called the 'Red Planet' because of its reddish appearance."
+        #         )
+        #     ]
+        # )
+        # results.extend(dummy_quiz_batch.questions)
         
         
-        # result = await Runner.run(agent, json.dumps(page_list, default=str))
-        # results.extend(result.final_output.questions)
+        result = await Runner.run(agent, json.dumps(page_list, default=str))
+        results.extend(result.final_output.questions)
     return results
 
 
