@@ -11,8 +11,8 @@ from app.monitor import start_monitoring
 load_dotenv()
 
 app = FastAPI(
-    title="Beequizer API",
-    description="API for Beequizer",
+    title="Document Processing Microservice",
+    description="API for Document Processing Microservice for Studybear",
     version=config.VERSION,
     contact={
         "name": "Beequizer",

@@ -1,6 +1,10 @@
 from typing import Literal
 from pydantic import BaseModel, Field
 
+class ParseDocumentToTextSchema(BaseModel):
+    file_url: str = Field(..., description="The url of the file to parse to text")
+    file_type: Literal["application/pdf", "application/docx", "application/doc"] = Field(..., description="The type of the file to parse to text")
+
 class GeneratePresignedUrlSchema(BaseModel):
     file_name: str = Field(..., description="The name of the file to upload")
     file_type: Literal["application/pdf", "application/docx", "application/doc"] = Field(..., description="The type of the file to upload")
