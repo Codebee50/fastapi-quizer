@@ -18,7 +18,7 @@ import requests
 from botocore.exceptions import ClientError
 
 from app import config
-from app.quizer.services import PDFParser
+from app.documents.services import PDFParser
 
 import logging
 

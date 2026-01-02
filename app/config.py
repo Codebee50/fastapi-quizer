@@ -25,3 +25,5 @@ BREVO_FROM_EMAIL = os.getenv("BREVO_FROM_EMAIL")
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 
 VERSION = "0.1.0"
+
+BASE_SERVER_URL = os.getenv("BASE_SERVER_URL", "http://localhost:8000")

@@ -2,17 +2,14 @@ import tempfile
 import boto3
 from fastapi import APIRouter, File, UploadFile
 from fastapi.exceptions import HTTPException
-from app.quizer.schemas import GeneratePresignedUrlSchema, GenerateQuizFromS3KeySchema, ParseDocumentToTextSchema
-from app.quizer.services import PDFParser
+from app.quizer.schemas import GeneratePresignedUrlSchema, GenerateQuizFromS3KeySchema
+from app.documents.services import PDFParser
 from app.quizer.tasks import generate_quiz, generate_quiz_from_s3_key, parse_pdf_and_generate_quiz
 from app import config
 router = APIRouter()
 import uuid
 
 
-@router.post("document/parse/")
-async def parse_document_to_text(request: ParseDocumentToTextSchema):
-    pass
 
 
 @router.post("/upload/presigned-url/")

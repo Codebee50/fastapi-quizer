@@ -37,16 +37,6 @@ class PDFParser:
             return full_text
         
         
-        # with fitz.open(self.file_path) as doc:
-        #     full_text = {}
-            
-        #     index = 0
-        #     for page in doc:
-        #         full_text[index] = page.get_text("text")
-        #         index += 1
-                
-        #     return full_text
-        
     def _ocr_and_extract(self)-> dict[int, str]:
         # Create temp files
         input_pdf = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)

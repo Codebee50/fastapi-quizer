@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 from app.monitor import start_monitoring
-
+from app.documents import routers as documents
 
 
 load_dotenv()
@@ -43,6 +43,7 @@ app.add_middleware(
 
 
 app.include_router(quizer.router, prefix="/quiz", tags=["Quiz"])
+app.include_router(documents.router, prefix="/documents", tags=["Documents"])
 
 @app.get("/health/")
 def health():
